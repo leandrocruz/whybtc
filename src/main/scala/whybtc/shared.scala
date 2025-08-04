@@ -90,28 +90,39 @@ object scenarios {
   import whybtc.ui.InputField
 
   def renderTable(points: Seq[DataPoint], btc: BigDecimal, unspent: BigDecimal) = {
-    table(
-      cls("table-auto w-full text-xs"),
-      tr(th("Year"), th("Age"), th("Spending"), th("BTC Price"), th("Units of BTC"), th("Wallet")),
-      points.map { it =>
-        val (c, w) = if (it.btc <= 0) ("text-slate-300", btc.prettyB(4)) else ("", it.btc.prettyB(4))
-        tr(
-          cls(c),
-          td(cls("px-4 py-2 text-center"), it.date.getYear),
-          td(cls("px-4 py-2 text-center"), it.age),
-          td(cls("px-4 py-2 text-center"), it.spending.prettyM()),
-          td(cls("px-4 py-2 text-center"), it.price.prettyM()),
-          td(cls("px-4 py-2 text-center"), it.units.prettyB(4)),
-          td(cls("px-4 py-2 text-center"), w)
-        )
-      },
-      if (unspent > 0) {
-        tr(
-          td(cls("text-right"), colSpan(5), "Unspent BTC"),
-          td(cls("px-4 py-2 text-center"), unspent.prettyB(4))
-        )
-      } else {
-        commentNode("")
+
+    def el =
+      table(
+        cls("table-auto w-full text-xs"),
+        tr(th("Year"), th("Age"), th("Spending"), th("BTC Price"), th("Units of BTC"), th("Wallet")),
+        points.map { it =>
+          val (c, w) = if (it.btc <= 0) ("text-slate-300", btc.prettyB(4)) else ("", it.btc.prettyB(4))
+          tr(
+            cls(c),
+            td(cls("px-4 py-2 text-center"), it.date.getYear),
+            td(cls("px-4 py-2 text-center"), it.age),
+            td(cls("px-4 py-2 text-center"), it.spending.prettyM()),
+            td(cls("px-4 py-2 text-center"), it.price.prettyM()),
+            td(cls("px-4 py-2 text-center"), it.units.prettyB(4)),
+            td(cls("px-4 py-2 text-center"), w)
+          )
+        },
+        if (unspent > 0) {
+          tr(
+            td(cls("text-right"), colSpan(5), "Unspent BTC"),
+            td(cls("px-4 py-2 text-center"), unspent.prettyB(4))
+          )
+        } else {
+          commentNode("")
+        }
+      )
+
+    val show = Var(false)
+    div(
+      button(cls("p-2 mb-4 rounded border bg-white"), child.text <-- show.signal.map(if(_) "Hide Series" else "Show Series") , onClick --> {_ => show.update(!_) }),
+      child.maybe <-- show.signal.map {
+        case false => None
+        case true  => Some(el)
       }
     )
   }
