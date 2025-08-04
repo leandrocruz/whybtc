@@ -1,10 +1,11 @@
 package whybtc
 
 object pricing {
-  import squants.market.*
 
+  import squants.market.*
   import whybtc.extensions.{prettyB, prettyM}
-  import java.time.LocalDate
+
+  import java.time.{LocalDate, Month}
   import java.time.temporal.ChronoUnit
 
   case class Params(
@@ -32,32 +33,65 @@ object pricing {
   }
 
   sealed trait PricingModel {
-    def priceAt(today: LocalDate, priceToday: Money, date: LocalDate): Money = USD(0)
+    def priceAt    (today: LocalDate, priceToday: Money, date: LocalDate): Money
+    def daysToReach(today: LocalDate, priceToday: Money, target: Double): Double
+    def dateToReach(today: LocalDate, priceToday: Money, target: Double): LocalDate
   }
 
-  case class StockToFlow() extends PricingModel
-  case class PowerLaw() extends PricingModel
+  case class PowerLaw() extends PricingModel {
+    private val genesis = LocalDate.of(2009, Month.JANUARY, 1)
+    private val a       = -17.0161223
+    private val b       = 5.8451542
 
-  case class Fixed(value: Double = .25) extends PricingModel {
+    override def priceAt(today: LocalDate, priceToday: Money, date: LocalDate) = {
+      //import org.scalajs.dom.console
+      val days  = ChronoUnit.DAYS.between(genesis, date)
+      val amount = Math.pow(10, a + b * Math.log10(days))
+      //console.log(s"POWER LAW ($start) days: ${days}, amount: ${amount}")
+      Money(amount, priceToday.currency)
+    }
+
+    override def daysToReach(today: LocalDate, priceToday: Money, target: Double) = {
+      val logDays = (Math.log10(target) - a) / b
+      Math.pow(10, logDays)
+    }
+
+    override def dateToReach(today: LocalDate, priceToday: Money, target: Double) = {
+      val days = daysToReach(today, priceToday, target)
+      genesis.plusDays(days.toInt)
+    }
+  }
+
+  case class Fixed(growth: Double = .25) extends PricingModel {
     override def priceAt(today: LocalDate, priceToday: Money, date: LocalDate): Money = {
       val years = ChronoUnit.YEARS.between(today, date)
-      priceToday * Math.pow(1 + value, years)
+      priceToday * Math.pow(1 + growth, years)
+    }
+
+    override def daysToReach(today: LocalDate, priceToday: Money, target: Double) = {
+      val daily = math.pow(1 + growth, 1.0 / 365) - 1
+      val tmp = BigDecimal(target) / priceToday.amount
+      Math.log(tmp.toDouble) / Math.log(1 + daily)
+    }
+
+    override def dateToReach(today: LocalDate, priceToday: Money, target: Double) = {
+      val days = daysToReach(today, priceToday, target)
+      today.plusDays(days.toInt)
     }
   }
 }
 
 object scenarios {
 
-  import whybtc.pricing.DataPoint
-  import whybtc.extensions.{prettyB, prettyM}
   import com.raquo.laminar.api.L.*
   import squants.market.*
-  import whybtc.pricing.Params
+  import whybtc.extensions.{prettyB, prettyM}
+  import whybtc.pricing.{DataPoint, Params}
   import whybtc.ui.InputField
 
   def renderTable(points: Seq[DataPoint], btc: BigDecimal, unspent: BigDecimal) = {
     table(
-      cls("table-auto w-full"),
+      cls("table-auto w-full text-xs"),
       tr(th("Year"), th("Age"), th("Spending"), th("BTC Price"), th("Units of BTC"), th("Wallet")),
       points.map { it =>
         val (c, w) = if (it.btc <= 0) ("text-slate-300", btc.prettyB(4)) else ("", it.btc.prettyB(4))

@@ -26,16 +26,15 @@ object ui {
   }
 
   object InputField {
-    def apply[T](name: String, theValue: Var[T])(using handler: InputHandler[T]) = {
+    def apply[T](name: String, theValue: Var[T], disable: Signal[Boolean] = Signal.fromValue(false))(using handler: InputHandler[T]) = {
       div(
         cls("flex flex-col max-w-64"),
         div(name),
         input(
           cls("px-2 py-1 border rounded"),
           value <-- theValue.signal.map(handler.render),
-          onInput.mapToValue.map(handler.parse) --> theValue
-//          controlled(
-//          )
+          onInput.mapToValue.map(handler.parse) --> theValue,
+          disabled <-- disable
         )
       )
     }
