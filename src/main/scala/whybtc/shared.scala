@@ -91,7 +91,7 @@ object scenarios {
         val valuation = params.model.priceAt(params.today, params.price, params.dieDate)
         val remaining = valuation * unspent
         maybe match {
-          case None        => div(cls("my-4 p border bg-white rounded"), s"Sorry. You can't retire on ${unspent.prettyB(4)} BTC if you plan to spend ${expenses.prettyM()}/y")
+          case None        => div(cls("my-4 p border bg-white rounded"), s"Sorry. You can't retire on ${unspent.prettyB(4)} BTC if you plan to spend ${expenses.prettyM()}/year")
           case Some(point) => div(cls("my-4 p border bg-white rounded"), s"According to your assumptions, you could be able to retire after year ${point.date.getYear}. You will be ${point.age} years old. Assuming you die at ${points.last.date.getYear}, you will hold ${unspent.prettyB(4)} BTC valued at ${remaining.prettyM()}.", if (unspent < 0.000001) "" else " Your family will be proud!")
         }
       }
@@ -131,7 +131,7 @@ object scenarios {
     def apply(params: Signal[Params]) = {
 
       val btc      = Var(1.0)
-      val expenses = Var(BigDecimal(100000))
+      val expenses = Var(BigDecimal(100_000))
 
       div(
         cls("flex flex-col gap-6"),
@@ -165,12 +165,44 @@ object scenarios {
   object EstimateBtc {
     def apply(params: Signal[Params]) = {
 
-      def render(btc: BigDecimal, expenses: Money, params: Params): Seq[HtmlElement] = {
-        Seq.empty
+      def render(retireBy: Int, expenses: Money, params: Params): Seq[HtmlElement] = {
+
+        def renderMessage(points: Seq[DataPoint], unspent: BigDecimal) = {
+          val maybe = points.find(_.btc > 0)
+          maybe match {
+            case None        => div(cls("my-4 p border bg-white rounded"), s"Sorry. You can't retire on ${unspent.prettyB(4)} BTC if you plan to spend ${expenses.prettyM()}/year")
+            case Some(point) =>
+              val years = points.count(_.btc == 0)
+              div(cls("my-4 p border bg-white rounded"), s"According to your assumptions, you could be able to retire after year ${point.date.getYear}. You will be ${point.age} years old. Assuming you die at ${points.last.date.getYear}, you would have to acquire ${unspent.prettyB(4)} BTC in the next ${years} years. You better hurry. There is only 21 million")
+          }
+        }
+
+        val spending = expenses * Math.pow(1 + params.inflation, params.years)
+        var totalBtc = BigDecimal(0)
+        val points = {
+          val years = for year <- params.today.getYear to params.dieDate.getYear yield year
+          years.reverse.zipWithIndex.map { (year, idx) =>
+            val value = if (idx == 0) spending else spending / Math.pow(1 + params.inflation, idx)
+            val date  = params.today.plusYears(year - params.today.getYear)
+            val price = params.model.priceAt(params.today, params.price, date)
+            val units = value / price
+            val age   = date.getYear - params.today.getYear + params.age
+            val btc   = if(date.getYear >= retireBy) {
+              totalBtc += units
+              totalBtc
+            } else BigDecimal(0)
+            DataPoint(date, age, value, price, units, btc)
+          }.reverse
+        }
+
+        Seq(
+          renderMessage(points, totalBtc),
+          renderTable  (points, btc = BigDecimal(0), unspent = BigDecimal(0))
+        )
       }
 
-      val retireBy = Var(2035)
-      val expenses = Var(BigDecimal(300000))
+      val retireBy = Var(2037)
+      val expenses = Var(BigDecimal(100_000))
 
       div(
         cls("flex flex-col gap-6"),

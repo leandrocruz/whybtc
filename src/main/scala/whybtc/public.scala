@@ -31,11 +31,11 @@ object PublicPage {
     }
 
     div(
-      cls("p bg-slate-100"),
+      cls("p"),
       h1(cls("font-bold text-2xl"), "Why Bitcoin"),
       p("Bitcoin retirement calculator"),
       div(
-        cls("flex gap-6 my-8"),
+        cls("flex flex-row justify-start items-start flex-wrap gap-6 my-8"),
         InputField("Age"             , age),
         InputField("Meet with Jesus" , dieAt),
         InputField("BTC Price"       , priceAmount),

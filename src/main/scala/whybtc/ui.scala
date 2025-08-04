@@ -31,7 +31,7 @@ object ui {
         cls("flex flex-col max-w-64"),
         div(name),
         input(
-          cls("px-2 py-1 border rounded shadow"),
+          cls("px-2 py-1 border rounded"),
           value <-- theValue.signal.map(handler.render),
           onInput.mapToValue.map(handler.parse) --> theValue
 //          controlled(
