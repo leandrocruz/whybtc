@@ -28,7 +28,7 @@ object ui {
   object InputField {
     def apply[T](name: String, theValue: Var[T])(using handler: InputHandler[T]) = {
       div(
-        cls("flex flex-col max-w-40"),
+        cls("flex flex-col max-w-64"),
         div(name),
         input(
           cls("px-2 py-1 border rounded shadow"),

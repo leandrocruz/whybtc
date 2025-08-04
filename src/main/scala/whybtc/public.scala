@@ -1,15 +1,14 @@
 package whybtc
 
-import whybtc.scenarios.{EstimateBtc, EstimateDate, EstimateSpending}
-
-import java.time.LocalDate
-
 object PublicPage {
 
-  import whybtc.ui.InputField
+  import com.raquo.laminar.api.L.*
   import squants.market.*
   import whybtc.pricing.*
-  import com.raquo.laminar.api.L.*
+  import whybtc.scenarios.{EstimateBtc, EstimateDate}
+  import whybtc.ui.InputField
+
+  import java.time.LocalDate
 
   def apply(): HtmlElement = {
 
@@ -46,10 +45,10 @@ object PublicPage {
         //div("Total: ", child.text <-- total.map(_.toFormattedString)),
       ),
       div(
-        cls("grid _grid-cols-3 gap-20 my-8"),
+        cls("flex flex-col gap-20"),
+        EstimateBtc(params),
         EstimateDate(params),
 //        EstimateSpending(price),
-//        EstimateBtc(price)
       )
     )
   }
